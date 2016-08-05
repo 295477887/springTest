@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://java.sun.com/xml/ns/javaee"
+    xmlns:web="http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee 
+        http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+    version="2.5">
+	<!-- 注册用于加载spring框架的中央控制器 listener ContextLoaderListener
+	原理：由于该监听器实现自ServletContextListener，因此它监听的是整个web容器（web.xml） -->    
+    <listener>
+    	<listener-class>
+    		org.springframework.web.context.ContextLoaderListener
+    	</listener-class>
+    </listener>
+    
+    <!-- contextConfigLocation是spring框架中指定spring配置文件
+   		找到spring配置文件后，创建一个ioc对象加载、解析配置文件，解析的同时实例化所有bean对象
+   		监听器将其实例化的WebApplicationContext保存在web容器中，即保存在ServletContext中 
+     -->
+    <context-param>
+    	<param-name>contextConfigLocation</param-name>
+		<param-value>/WEB-INF/applicationContext.xml</param-value>
+    </context-param>
+    
+    
+    
+    
+    <welcome-file-list>
+    	<welcome-file>index.jsp</welcome-file>
+    </welcome-file-list>
+</web-app>
