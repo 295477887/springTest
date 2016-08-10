@@ -2,29 +2,134 @@
 <beans xmlns="http://www.springframework.org/schema/beans"  
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"  
    	xmlns:context="http://www.springframework.org/schema/context"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans    
-		http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
-		http://www.springframework.org/schema/context
-		http://www.springframework.org/schema/context/spring-context-4.2.xsd"> 
+   	xmlns:tx="http://www.springframework.org/schema/tx"  
+   	xmlns:aop="http://www.springframework.org/schema/aop"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans  http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+		http://www.springframework.org/schema/context  http://www.springframework.org/schema/context/spring-context-4.2.xsd
+		http://www.springframework.org/schema/tx  http://www.springframework.org/schema/tx/spring-tx-2.5.xsd
+		http://www.springframework.org/schema/aop  http://www.springframework.org/schema/aop/spring-aop-3.0.xsd"> 
 	
 	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
 		<property name="dataSource" ref="dataSource"></property>
 	</bean>	
-	
-	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
-		<property name="url" value="jdbc:mysql://10.30.20.41:3306/mapbar_fieldwork_main"></property>
-		<property name="username" value="root"></property>
-		<property name="driverClassName" value="com.mysql.jdbc.Driver"></property>
-	
+	<!-- 注册properties类 -->
+	<bean id="jdbcConfigurer"  class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">  
+		<property name="locations" value="classpath:jdbc.properties"/>   
 	</bean>
-  	
- <!--  	<bean id="user" class="com.chen.bean.User">
-  		<property name="sex" value="男"></property>
-  	</bean> -->
-  	
+	
+	<!-- spring jdbc -->
+	<!--
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="url" value="${jdbc.url}"></property>
+		<property name="username" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+		<property name="driverClassName" value="${jdbc.driverClassName}"></property>
+	</bean>
+	 -->
+	 
+	<!-- DBCP 
+	BasicDataSource提供了close()方法关闭数据源，所以必须设定destroy-method=”close”属性，以便Spring容器关闭时，数据源能够正常关闭-->
+	<!-- 
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="url" value="${jdbc.url}"></property>
+		<property name="username" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+		<property name="driverClassName" value="${jdbc.driverClassName}"></property>
+	</bean>
+  	 -->
+  	 
+  	 <!-- c3p0
+  	 	 -->
+  	 <bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource" destroy-method="close">
+		<!-- 注意name和dbcp不同 -->
+		<property name="jdbcUrl" value="${jdbc.url}"></property>
+		<property name="user" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+		<property name="driverClass" value="${jdbc.driverClassName}"></property>
+		  <!--连接池中保留的最大连接数。默认值: 15 -->   
+          <property name="maxPoolSize" value="20"/>  
+          <!-- 连接池中保留的最小连接数，默认为：3-->  
+          <property name="minPoolSize" value="2"/>  
+          <!-- 初始化连接池中的连接数，取值应在minPoolSize与maxPoolSize之间，默认为3-->  
+          <property name="initialPoolSize" value="2"/>  
+  
+          <!--最大空闲时间，60秒内未使用则连接被丢弃。若为0则永不丢弃。默认值: 0 -->   
+          <property name="maxIdleTime" value="60"></property>  
+            
+          <!-- 当连接池连接耗尽时，客户端调用getConnection()后等待获取新连接的时间，超时后将抛出SQLException，如设为0则无限期等待。单位毫秒。默认: 0 -->   
+          <property name="checkoutTimeout" value="3000"/>  
+            
+          <!--当连接池中的连接耗尽的时候c3p0一次同时获取的连接数。默认值: 3 -->   
+          <property name="acquireIncrement" value="2"/>  
+  
+          <!--定义在从数据库获取新连接失败后重复尝试的次数。默认值: 30 ；小于等于0表示无限次-->   
+          <property name="acquireRetryAttempts" value="0"/>  
+  
+          <!--重新尝试的时间间隔，默认为：1000毫秒-->   
+          <property name="acquireRetryDelay" value="1000" />  
+   		  
+   		  <!--关闭连接时，是否提交未提交的事务，默认为false，即关闭连接，回滚未提交的事务 -->   
+          <property name="autoCommitOnClose" value="false"></property>  
+  
+          <!--c3p0将建一张名为Test的空表，并使用其自带的查询语句进行测试。如果定义了这个参数那么属性preferredTestQuery将被忽略。你不能在这张Test表上进行任何操作，它将只供c3p0测试使用。默认值: null -->   
+          <property name="automaticTestTable" value="c3p0testtable"></property>  
+  
+          <!--如果为false，则获取连接失败将会引起所有等待连接池来获取连接的线程抛出异常，但是数据源仍有效保留，并在下次调用getConnection()的时候继续尝试获取连接。如果设为true，那么在尝试获取连接失败后该数据源将申明已断开并永久关闭。默认: false-->   
+          <property name="breakAfterAcquireFailure" value="false"></property>  
+  
+          <!--每60秒检查所有连接池中的空闲连接。默认值: 0，不检查 -->   
+          <property name="idleConnectionTestPeriod" value="60"></property>  
+          <!--c3p0全局的PreparedStatements缓存的大小。如果maxStatements与maxStatementsPerConnection均为0，则缓存不生效，只要有一个不为0，则语句的缓存就能生效。如果默认值: 0-->   
+          <property name="maxStatements" value="100"></property>  
+          <!--maxStatementsPerConnection定义了连接池内单个连接所拥有的最大缓存statements数。默认值: 0 -->   
+          <property name="maxStatementsPerConnection" value="0"></property>  
+         
+	</bean>
+	
+	<!-- 事务配置在service层，dao层的异常要抛出来事务才生效，可以通过配置切面或者用注解的方法使用事务 -->
+	<!-- 配置事务管理器 -->
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+	
+	<!-- 使用事务有2种方式，
+		1、可以通过配置通知+切面的方式
+			可以配置一类方法使用事务
+			开发时不用考虑事务
+		2、 使用注解@Transactional
+			可以精准的配置要使用事务的方法
+			开发是需要考虑事务	
+	-->
+	<!-- 配置通知 -->
+	<tx:advice id="serviceAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED"/>
+			<tx:method name="del*" propagation="REQUIRED"/>
+			<tx:method name="update*" propagation="REQUIRED"/>
+			<tx:method name="add*" propagation="REQUIRED"/>
+			<tx:method name="find*" propagation="REQUIRED"/>
+			<tx:method name="get*" propagation="REQUIRED"/>
+			<tx:method name="query*" propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+	<!-- 配置切面 -->
+	<aop:config>
+		<!-- 切入点 -->
+		<aop:pointcut id="servicePointcut" expression="execution(* com.chen.service.*.*(..))" />
+ 		<aop:advisor advice-ref="serviceAdvice" pointcut-ref="servicePointcut"/>
+ 	</aop:config>
+	
+	<!--采用@Transactional注解方式使用事务 --><!-- 
+	<tx:annotation-driven transaction-manager="transactionManager" /> -->
+	
+	
   	<bean id="userDao" class="com.chen.dao.UserDao">
   		<property name="jdbcTemplate" ref="jdbcTemplate"></property>
   	</bean>
   	
+  	<bean id="userService" class="com.chen.service.UserService">
+  		<property name="userDao" ref="userDao"></property>
+  	</bean>
   	
 </beans>
